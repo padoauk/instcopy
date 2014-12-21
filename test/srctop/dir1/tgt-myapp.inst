@@ -1,0 +1,35 @@
+#
+# nodes are files to be copied
+# hash keys are directories to which nodes are copied
+#
+- TGT_DATA:
+  - dest1:
+    - file1.csv
+    - file2.csv
+    - dest2:
+      - file01.txt
+      - file02.txt
+#
+# File name replacement:
+# If file name definition matches xxxx -> yyyy, where xxxx and yyyy are any words,
+# the src file of xxxx is copyied to the destination and renamed to yyyy.
+#
+      - file03 -> file03.txt
+
+#
+# Array value:
+# If value of a variable is an array, the variable is replaced with each of the array element.
+# For example, if TGT_KEIS = "a b", the following definition is equivalemt to
+#
+# - TGT_DATA/a:
+#    -file04a.txt = file04.txt
+# - TGT_DATA/b:
+#    -file04b.txt = file04.txt
+#
+- TGT_DATA/TGT_KEIS:
+  - file04TGT_KEIS.txt -> file04.txt
+
+- TGT_BIN:
+  - module1
+  - module2
+  - module3

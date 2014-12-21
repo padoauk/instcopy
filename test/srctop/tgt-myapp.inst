@@ -1,0 +1,20 @@
+#
+
+#
+#
+#
+TGT_BIN = /Volumes/dcl/largeforest/IntelliJ_Projects/instcopy/test/dsttop/bin
+TGT_DATA = ../dsttop/data
+TGT_VAR = ../dsttop/data/var
+TGT_KEIS = "a b c d e"
+TGT_CLONES = '1 2 3 4 5'
+TGT_SYS = myapp
+
+  TGT_SYS1= myapp
+TGT_SYS2=myapp
+TGT_SYS3 =myapp
+
+TGT_SYS4 = myapp #comment
+
+TGT_SYS5 = 日本語
+
