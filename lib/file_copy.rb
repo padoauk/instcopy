@@ -82,6 +82,9 @@ class FileCopy
     Dir.glob(src).each do |f|
       r.push([f,dst])
     end
+    if r.length == 0
+      STDERR.puts "error no such file or directory called #{src}"
+    end
 
     return r
   end
