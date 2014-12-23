@@ -1,0 +1,422 @@
+#!/usr/bin/env ruby
+# encoding: utf-8
+
+=begin
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
+=end
+
+#
+# instcopy main
+#
+
+require 'optparse'
+require 'yaml'
+
+require 'FileUtils'
+
+#
+# FileCopy gets definition of {src_file: dest_directory} pairs as list and do copy as defined.
+#
+class FileCopy
+  @@prev_dir = String.new
+
+  def self.copy( list, dir )
+
+    unless @@prev_dir.eql?(dir)
+      @@prev_dir = dir
+
+      if $DRY_RUN || $EXEC_VERBOSE
+        puts "#{@@prev_dir}"
+      end
+    end
+
+    if list.instance_of?(Hash)
+      self.parse_and_copy(list, dir)
+    elsif list.instance_of?(Array)
+      list.each do |e|
+        self.copy(e, dir)
+      end
+    end
+  end
+
+
+  #############################################
+  private
+  #############################################
+
+  #
+  # parse the KVs as src and dst and do copy
+  #
+  def self.parse_and_copy( obj, dir )
+    Dir.chdir(dir) if dir
+
+
+    obj.each do |k,v|
+      self.parse(k,v).each do |a|
+        r = self.do_copy(a[0],a[1])
+        unless r == nil
+          STDERR.puts r
+        end
+      end
+    end
+
+  end
+
+  #
+  # parse the KVs and returns the result as array of [src,dst]
+  #
+  def self.parse( k, v )
+    if k == nil || v == nil
+      return false
+    end
+
+    src = k.to_s
+    dst = v.to_s
+
+    # dst must be the file name in order to check the existance of directory
+
+    if src.match(/(\s*)(\S+)(\s*)->(\s*)(\S+)(\s*)/)
+      src = $2
+      (dst.length == 0) ? dst = $5 : dst = "#{dst}/#{$5}"
+    else
+      dst = "#{dst}/#{src}"
+    end
+
+    if src.length == 0 || dst.length == 0
+      return false
+    end
+
+    r = []
+    Dir.glob(src).each do |f|
+      r.push([f,dst])
+    end
+    if r.length == 0
+      STDERR.puts "warning no such file or directory called #{src}"
+    end
+
+    return r
+  end
+
+
+  #
+  # do copy
+  #
+  def self.do_copy( src, dst )
+
+    begin
+      unless dst.match(/^\//)
+        dst = "#{$INSTCOPY_TOP_DIR}/#{dst}"
+      end
+
+      if $DRY_RUN || $EXEC_VERBOSE
+        puts "\tcopy #{src} #{dst}"
+      end
+
+      unless $DRY_RUN
+        dirname = File.dirname(dst)
+        FileUtils.mkdir_p(dirname)
+        FileUtils.cp(src, dst, :preserve => true )
+      end
+
+    rescue => e
+      return "error cp #{src} #{dst}"
+    end
+    return nil
+  end
+
+end
+
+#
+# instcopy configuration of the topdir
+#
+class ConfigTop
+  attr_reader :vars, :path, :sub_configs
+
+  def initialize( fname )
+    # path to the top configuration file
+    @path = nil
+    # global var names and their values
+    @vars = Hash.new
+    # paths of configuration files of subordinate directories
+    @sub_configs = []
+
+    if fname
+      read_file( fname.to_s )
+    end
+  end
+
+  def topdir
+    File.dirname(@path)
+  end
+
+  # read top level configuration file
+  def read_file( fname )
+
+    unless File.exists?(fname) then
+      raise IOError, "file #{fname} does not exist"
+    end
+    unless File.readable?(fname) then
+      raise IOError, "cannot read #{fname}"
+    end
+
+    @path = File.absolute_path(fname)
+    $INSTCOPY_TOP_DIR = File.dirname(@path)
+
+    File.open(fname, "r") do |file|
+      while line = file.gets
+        parse_a_line(line)
+      end
+    end
+
+  end
+
+  # find configuration files of subordinate directories
+  def find_configs( conf_name )
+    do_find_configs( File.dirname(@path), conf_name )
+  end
+
+  ################################################
+  private
+  ################################################
+
+  # parse a line of top level configuration file
+  def parse_a_line( line )
+    # skip comment or null lines
+    return if line.match('^#')  || line.match(/^(\s*)$/)
+
+    # scalar
+    if /(\s*)(\S+)(\s+)=(\s*)(\S+)(\s*)$/=~ line
+      vname = $2
+      value = $5
+      @vars[vname] = value
+      return
+    end
+
+    # array
+    if /(\s*)(\S+)(\s+)=(\s*)"(.+)"(\s*)$/=~ line || /(\s*)(\S+)(\s+)=(\s*)'(.+)'(\s*)$/=~ line
+      vname = $2
+      value = $5
+      @vars[vname] = value.split(/\s+/)
+      return
+    end
+  end
+
+  # find `appname` configuration files in `dir` and its sub-directories
+  def do_find_configs( dir, appname )
+    dir = dir.to_s
+    appname = appname.to_s
+    abs_path = File.absolute_path(dir)
+
+    Dir.entries(abs_path).each do |e|
+      next if e == '.' || e == '..'
+      tpath = "#{abs_path}/#{e}"
+      ttype = File.ftype(tpath)
+      if e == appname.to_s &&  ttype == 'file'
+        @sub_configs.push("#{abs_path}/#{appname}")
+      elsif ttype == 'directory'
+        do_find_configs( tpath, appname )
+      end
+    end
+  end
+
+end
+
+#
+# instcopy configuration of the subordinate directories
+#
+class ConfigSub
+  attr_reader :data
+
+  def initialize( fname )
+    @data = nil
+    @path = nil
+    if fname
+      read_file( fname.to_s )
+    end
+  end
+
+  def read_file( fname )
+    @path = File.absolute_path(fname)
+    y = YAML.load_file(fname)
+    @data = trace_hash( y, nil )
+  end
+
+  def eval_vars( varval )
+    return if @data == nil
+    unless varval.instance_of?(Hash)
+      return # nothing to do
+    end
+
+    varval.each do |var, val|
+      replaced = []
+      @data.each do |o|
+        o.each do |src, dst|
+          srcstr = src.to_s
+          dststr = dst.to_s
+
+          # no replacement (just push the original)
+          unless ( srcstr.match(var) || dststr.match(var) )
+            replaced.push( {srcstr => dststr} )
+            next
+          end
+
+          # for the case val is Array
+          v = val.instance_of?(Array) ? val : [val]
+
+          # replace var with val
+          v.each do |str|
+            d = dststr.sub(var, str)
+            s = srcstr.sub(var, str)
+            replaced.push( {s => d} )
+          end
+        end
+        @data = replaced
+      end
+    end
+
+  end
+
+  def dir
+    return File.dirname(@path)
+  end
+
+  def print
+    puts @path
+    @data.each do |o|
+      puts "  #{o.to_s}"
+    end
+  end
+
+  ################################################
+  private
+  ################################################
+
+  #
+  # trace hash and get the path, of keys, to non-hash object
+  #
+  # examples
+  #   { "k1": {"k2: ["v1", "v2"]}} => [ {"v1" : "k1/k2"}, {"v2": "k1/k2"} ]
+  #   [ {"k1":"v1"}, { "l1": { "l2": { "l3": "w1" }}}
+  #                                => [ {"v1": "k1"}, {"w1": "l1/l2/l3"} ]
+  #
+  def trace_hash( obj, path )
+    r = []
+
+    if obj.instance_of?(Array)
+      obj.each do |o|
+        if o.instance_of?(String)
+          r.push({o => path})
+        else
+          r.push( trace_hash(o, path) )
+        end
+      end
+    elsif obj.instance_of?(Hash)
+      obj.each do |k,v|
+        if path == nil || path.length == 0
+          r.push( trace_hash(v, k) )
+        else
+          r.push( trace_hash(v, "#{path}/#{k}") )
+        end
+      end
+    end
+
+    return r.flatten
+  end
+
+
+end
+
+class Instcopy
+  attr_reader :top_dir, :target_app, :dir_invoked
+
+  def initialize
+    @@suffix = 'inst'
+    @dir_invoked = Dir.pwd
+  end
+
+  def conf_file
+    "#{target_app}.#{@@suffix}"
+  end
+
+  def set_top( args )
+    if args.has_key?(:target_app) then
+      @target_app = args[:target_app]
+    else
+      raise ArgumentError, "target-app not defined"
+    end
+
+    unless args.has_key?(:top_dir) then
+      search_top
+      Dir.chdir(@dir_invoked)
+    else
+      @top_dir = Dir.pwd
+    end
+  end
+
+  # search top_dir from current directory
+  def search_top
+    Dir.chdir(".")
+    while File.exist?("#{Dir.pwd}/#{@target_app}.#{@@suffix}")
+      @top_dir = Dir.pwd.to_s
+      Dir.chdir('..')
+    end
+  end
+
+end
+
+def print_help
+  puts "usage: instcopy [-v || --verbose] [-t || --top top_dir] [-s || --start startdir] [-n || --dry-run] [-c || --current-only ] target-app"
+end
+
+def cmdline
+  args = {}
+  OptionParser.new do |parser|
+    parser.on('-h', '--help') { args[:help] = true }
+    parser.on('-v', '--verbose') { $EXEC_VERBOSE = true }
+    parser.on('-n', '--dry-run') { $DRY_RUN = true }
+    parser.on('-c', '--current-only') { args[:current_only] = true }
+    parser.on('-t VALUE', '--top VALUE', 'top_directory') { |v| args[:top_dir] = v }
+    parser.on('-s VALUE', '--start VALUE', 'top_directory') { |v| args[:start_dir] = v }
+    parser.on('VALUE') { |v|  }
+    parser.permute!(ARGV)
+  end
+
+  args[:target_app] = ARGV[0]
+  args
+end
+
+
+#############################
+# MAIN
+#############################
+
+current_dir = Dir.pwd
+
+begin
+  args = cmdline
+rescue => ex
+  puts ex.to_s
+  print_help
+  exit 0
+end
+
+if args.has_key?(:help) && args[:help] == true then
+  print_help
+  exit 1
+end
+
+
+instcopy = Instcopy.new
+instcopy.set_top(args)
+
+conf_top = ConfigTop.new("#{instcopy.top_dir}/#{instcopy.conf_file}")
+conf_top.find_configs(instcopy.conf_file)
+conf_top.sub_configs.each do |path|
+  if (! args[:current_only]) || File.dirname(path).eql?(current_dir)
+    conf_sub = ConfigSub.new(path)
+    conf_sub.eval_vars(conf_top.vars)
+    FileCopy.copy(conf_sub.data, conf_sub.dir)
+  end
+end
+
+
