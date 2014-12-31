@@ -2,7 +2,7 @@
 # encoding: utf-8
 
 =begin
- Copyright 2014 padoauk@gmail.com All Rights Reserved
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
 =end
 
 #
@@ -34,33 +34,39 @@ def cmdline
   args
 end
 
-current_dir = Dir.pwd
 
-instcopy = Instcopy.new
+#############################
+# MAIN
+#############################
+if __FILE__ == $0
+  current_dir = Dir.pwd
 
-begin
-  args = cmdline
-rescue => ex
-  puts ex.to_s
-  print_help
-  exit 0
-end
-
-if args.has_key?(:help) && args[:help] == true then
-  print_help
-  exit 1
-end
-
-instcopy.set_top(args)
-
-conf_top = ConfigTop.new("#{instcopy.top_dir}/#{instcopy.conf_file}")
-conf_top.find_configs(instcopy.conf_file)
-conf_top.sub_configs.each do |path|
-  if (! args[:current_only]) || File.dirname(path).eql?(current_dir)
-    conf_sub = ConfigSub.new(path)
-    conf_sub.eval_vars(conf_top.vars)
-    FileCopy.copy(conf_sub.data, conf_sub.dir)
+  begin
+    args = cmdline
+  rescue => ex
+    puts ex.to_s
+    print_help
+    exit 0
   end
-end
 
+  if args.has_key?(:help) && args[:help] == true then
+    print_help
+    exit 1
+  end
+
+
+  instcopy = Instcopy.new
+  instcopy.set_top(args)
+
+  conf_top = ConfigTop.new("#{instcopy.top_dir}/#{instcopy.conf_file}")
+  conf_top.find_configs(instcopy.conf_file)
+  conf_top.sub_configs.each do |path|
+    if (! args[:current_only]) || File.dirname(path).eql?(current_dir)
+      conf_sub = ConfigSub.new(path)
+      conf_sub.eval_vars(conf_top.vars)
+      FileCopy.copy(conf_sub.data, conf_sub.dir)
+    end
+  end
+
+end
 
