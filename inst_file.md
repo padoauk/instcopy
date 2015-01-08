@@ -63,26 +63,28 @@ Copy configuration .inst examples
 -----------------------------------------------------
 
 ### copy config example 01
-
+```
   # file1 and file2 are copied to /opt/bin
   - /opt/bin:
     - file1
     - file2
+```
 
 ### copy config example 02
-
+```
   # file1 and file2 are copied to /opt/bin
   - /opt:
     - bin:
       - file1
       - file2
+```
 
 ### copy config example 03
-
+```
   # src_file1 is copied to /opt/bin and renamed to dst_file1
   - /opt/bin:
     - src_file1 -> dst_file1
-
+```
 
 Referring global parameter
 =======================================================
@@ -94,34 +96,38 @@ Scalar parameter
 Each scalar parameter variable is simply replaced by its parameter value.
 
 ### top level configuration example
-
+```
   TOP = /opt
   BIN = bin
   DATA = data
   SYSS = "a b c d"
-
+```
 
 ### copy config example 04
-
+```
   # file1 is copied to /opt/bin and file2 is copied to /opt/data
   - TOP:
     - BIN:
       - file1
     - DATA:
       - file2
+```
 
 Array parameter
 -------------------------------------------------------
 Each array parameter is replaced by all of its elements.
 
 ### copy config example 05
-
+```
   # file1 is copied to /opt/data/a, /opt/data/b, /opt/data/c and /opt/data/d
   - TOP/DATA/SYSS:
     - file1
+```
 
 ### copy config example 06
-
+```
   # file1 is copied to /opt/data/file1a, /opt/data/file1b, /opt/data/file1c and /opt/data/file1d
   - TOP/DATA
     - file1SYSS
+```
+
