@@ -19,7 +19,7 @@ scalar or array value. Here is the format definition.
 
 Top level .inst foramat
 ----------------------------------------------------
-
+'''
   definitions ::= { def_line | comment_line }
   def_line ::= top_level_var "=" top_level_val
   comment_line ::= "#" { ascii | space }
@@ -39,16 +39,17 @@ Top level .inst foramat
   lower_alpha ::= [a-z]
   digit ::= [0-9]
   space ::= " " | "    "
+'''
 
 Top level .inst example
 ----------------------------------------------------
-
+'''
   # top level copyinst definition for APP
   APP_BIN = /opt/app/bin
   APP_DATA = /var/app
   APP_CONF = /etc/app
   APP_SYSTEMS = "a b c d"
-
+'''
 
 Copy configuration
 ====================================================
