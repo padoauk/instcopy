@@ -14,7 +14,9 @@
 # If file name definition matches xxxx -> yyyy, where xxxx and yyyy are any words,
 # the src file of xxxx is copyied to the destination and renamed to yyyy.
 #
-      - file03 -> file03.txt
+#      - file03 -> file03.txt
+#      - file03ARR_1ARR_A -> file03.txt.ARR_1ARR_A
+      - file03_ARR_1ARR_A -> file03.txt_ARR_1ARR_A
 
 #
 # Array value:
@@ -33,3 +35,4 @@
   - module1
   - module2
   - module3
+  - module3 <- link_module3

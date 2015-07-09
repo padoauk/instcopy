@@ -1,16 +1,8 @@
-#!/usr/bin/env ruby
 # encoding: utf-8
 
 =begin
  Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
 =end
-
-#
-# instcopy main
-#
-
-require 'optparse'
-require 'yaml'
 
 require 'FileUtils'
 
@@ -52,8 +44,15 @@ class FileCopy
 
 
     obj.each do |k,v|
-      self.parse(k,v).each do |a|
+      cplk = self.parse(k,v)
+      cplk[0].each do |a|
         r = self.do_copy(a[0],a[1])
+        unless r == nil
+          STDERR.puts r
+        end
+      end
+      cplk[1].each do |a|
+        r = self.mk_link(a[0], a[1])
         unless r == nil
           STDERR.puts r
         end
@@ -72,12 +71,17 @@ class FileCopy
 
     src = k.to_s
     dst = v.to_s
+    link2dst = nil
 
     # dst must be the file name in order to check the existance of directory
 
     if src.match(/(\s*)(\S+)(\s*)->(\s*)(\S+)(\s*)/)
       src = $2
       (dst.length == 0) ? dst = $5 : dst = "#{dst}/#{$5}"
+    elsif src.match(/(\s*)(\S+)(\s*)<-(\s*)(\S+)(\s*)/)
+      src = $2
+      dst = "#{dst}/#{src}"
+      link2dst = $5
     else
       dst = "#{dst}/#{src}"
     end
@@ -86,15 +90,19 @@ class FileCopy
       return false
     end
 
-    r = []
+    rcopy = []
+
     Dir.glob(src).each do |f|
-      r.push([f,dst])
+      rcopy.push([f,dst])
     end
-    if r.length == 0
+    if rcopy.length == 0
       STDERR.puts "warning no such file or directory called #{src}"
     end
 
-    return r
+    rlink = []
+    rlink.push([link2dst, dst])  if link2dst != nil
+
+    return [rcopy, rlink]
   end
 
 
@@ -124,7 +132,43 @@ class FileCopy
     return nil
   end
 
-end
+  #
+  # make symbolic link
+  #
+  def self.mk_link( from, to )
+    begin
+      unless to.match(/^\//)
+        to = "#{$INSTCOPY_TOP_DIR}/#{to}"
+      end
+
+      dirname = File.dirname(to)
+      to = to.sub("#{dirname}/",'')
+
+      if $DRY_RUN || $EXEC_VERBOSE
+        puts "\t( cd #{dirname} && ln -s #{to} #{from} )"
+      end
+
+      unless $DRY_RUN
+        pwd = Dir.pwd
+        FileUtils.mkdir_p(dirname)
+        Dir.chdir(dirname)
+        system("rm -f #{from}")
+        FileUtils.ln_s(to, from)
+        Dir.chdir(pwd)
+      end
+
+    rescue => e
+      return "error ln -s #{from} #{to} in #{dirname}"
+    end
+
+    return nil
+  end
+
+end# encoding: utf-8
+
+=begin
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
+=end
 
 #
 # instcopy configuration of the topdir
@@ -219,7 +263,14 @@ class ConfigTop
     end
   end
 
-end
+end# encoding: utf-8
+
+=begin
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
+=end
+
+require 'yaml'
+require 'pp'
 
 #
 # instcopy configuration of the subordinate directories
@@ -265,8 +316,8 @@ class ConfigSub
 
           # replace var with val
           v.each do |str|
-            d = dststr.sub(var, str)
-            s = srcstr.sub(var, str)
+            d = dststr.gsub(var, str)
+            s = srcstr.gsub(var, str)
             replaced.push( {s => d} )
           end
         end
@@ -324,7 +375,12 @@ class ConfigSub
   end
 
 
-end
+end# encoding: utf-8
+
+=begin
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
+=end
+
 
 class Instcopy
   attr_reader :top_dir, :target_app, :dir_invoked
@@ -362,10 +418,22 @@ class Instcopy
     end
   end
 
-end
+end#!/usr/bin/env ruby
+# encoding: utf-8
+
+=begin
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
+=end
+
+#
+# instcopy main
+#
+
+require 'optparse'
+
 
 def print_help
-  puts "usage: instcopy [-v || --verbose] [-t || --top top_dir] [-s || --start startdir] [-n || --dry-run] [-c || --current-only ] target-app"
+  puts "usage: instcopy [-v || --verbose] [-t || --top top_dir] [-n || --dry-run] [-c || --current-only ] target-app"
 end
 
 def cmdline
@@ -376,7 +444,6 @@ def cmdline
     parser.on('-n', '--dry-run') { $DRY_RUN = true }
     parser.on('-c', '--current-only') { args[:current_only] = true }
     parser.on('-t VALUE', '--top VALUE', 'top_directory') { |v| args[:top_dir] = v }
-    parser.on('-s VALUE', '--start VALUE', 'top_directory') { |v| args[:start_dir] = v }
     parser.on('VALUE') { |v|  }
     parser.permute!(ARGV)
   end
@@ -420,3 +487,4 @@ if __FILE__ == $0
   end
 
 end
+

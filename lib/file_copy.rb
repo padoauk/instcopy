@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 =begin
- Copyright 2014 padoauk@gmail.com All Rights Reserved
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
 =end
 
 require 'FileUtils'
@@ -44,8 +44,15 @@ class FileCopy
 
 
     obj.each do |k,v|
-      self.parse(k,v).each do |a|
+      cplk = self.parse(k,v)
+      cplk[0].each do |a|
         r = self.do_copy(a[0],a[1])
+        unless r == nil
+          STDERR.puts r
+        end
+      end
+      cplk[1].each do |a|
+        r = self.mk_link(a[0], a[1])
         unless r == nil
           STDERR.puts r
         end
@@ -64,12 +71,17 @@ class FileCopy
 
     src = k.to_s
     dst = v.to_s
+    link2dst = nil
 
     # dst must be the file name in order to check the existance of directory
 
     if src.match(/(\s*)(\S+)(\s*)->(\s*)(\S+)(\s*)/)
       src = $2
       (dst.length == 0) ? dst = $5 : dst = "#{dst}/#{$5}"
+    elsif src.match(/(\s*)(\S+)(\s*)<-(\s*)(\S+)(\s*)/)
+      src = $2
+      dst = "#{dst}/#{src}"
+      link2dst = $5
     else
       dst = "#{dst}/#{src}"
     end
@@ -78,15 +90,19 @@ class FileCopy
       return false
     end
 
-    r = []
+    rcopy = []
+
     Dir.glob(src).each do |f|
-      r.push([f,dst])
+      rcopy.push([f,dst])
     end
-    if r.length == 0
-      STDERR.puts "error no such file or directory called #{src}"
+    if rcopy.length == 0
+      STDERR.puts "warning no such file or directory called #{src}"
     end
 
-    return r
+    rlink = []
+    rlink.push([link2dst, dst])  if link2dst != nil
+
+    return [rcopy, rlink]
   end
 
 
@@ -113,6 +129,38 @@ class FileCopy
     rescue => e
       return "error cp #{src} #{dst}"
     end
+    return nil
+  end
+
+  #
+  # make symbolic link
+  #
+  def self.mk_link( from, to )
+    begin
+      unless to.match(/^\//)
+        to = "#{$INSTCOPY_TOP_DIR}/#{to}"
+      end
+
+      dirname = File.dirname(to)
+      to = to.sub("#{dirname}/",'')
+
+      if $DRY_RUN || $EXEC_VERBOSE
+        puts "\t( cd #{dirname} && ln -s #{to} #{from} )"
+      end
+
+      unless $DRY_RUN
+        pwd = Dir.pwd
+        FileUtils.mkdir_p(dirname)
+        Dir.chdir(dirname)
+        system("rm -f #{from}")
+        FileUtils.ln_s(to, from)
+        Dir.chdir(pwd)
+      end
+
+    rescue => e
+      return "error ln -s #{from} #{to} in #{dirname}"
+    end
+
     return nil
   end
 

@@ -84,6 +84,9 @@ Copy configuration .inst examples
   # src_file1 is copied to /opt/bin and renamed to dst_file1
   - /opt/bin:
     - src_file1 -> dst_file1
+  # src_file2 is copied to /opt/bin and symbolic link to the copied file named sym_link2 is generated
+  - /opt/bin
+    - src_file2 <- sym_link2
 ```
 
 Referring global parameter
@@ -101,6 +104,7 @@ Each scalar parameter variable is simply replaced by its parameter value.
   BIN = bin
   DATA = data
   SYSS = "a b c d"
+  CLONES = "1 2 3"
 ```
 
 ### copy config example 04
@@ -129,5 +133,15 @@ Each array parameter is replaced by all of its elements.
   # file1 is copied to /opt/data/file1a, /opt/data/file1b, /opt/data/file1c and /opt/data/file1d
   - TOP/DATA
     - file1SYSS
+```
+
+### copy config example 07
+```
+  # file_a1 as file_a1.txt, file_a2 as file_a2.txt, file_a3 as file_a3.txt,
+  # file_b1 as file_b1.txt, ...
+  # ...
+  # ...                                             file_d3 as file_d3.txt,
+  - TOP/DATA
+    - file_SYSSCLONES -> file_SYSSCLONES.txt
 ```
 

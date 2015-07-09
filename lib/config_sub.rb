@@ -1,7 +1,7 @@
 # encoding: utf-8
 
 =begin
- Copyright 2014 padoauk@gmail.com All Rights Reserved
+ Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
 =end
 
 require 'yaml'
@@ -51,8 +51,8 @@ class ConfigSub
 
           # replace var with val
           v.each do |str|
-            d = dststr.sub(var, str)
-            s = srcstr.sub(var, str)
+            d = dststr.gsub(var, str)
+            s = srcstr.gsub(var, str)
             replaced.push( {s => d} )
           end
         end

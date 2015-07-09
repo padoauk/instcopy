@@ -3,8 +3,10 @@
 #
 #
 #
-TGT_BIN = /Volumes/dcl/largeforest/IntelliJ_Projects/instcopy/test/dsttop/bin
-TGT_DATA = ../dsttop/data
+#TGT_BIN = /Volumes/dcl/largeforest/IntelliJ_Projects/instcopy/test/dsttop/bin
+TGT_BIN = ../dsttop/bin
+#TGT_DATA = ../dsttop/data
+TGT_DATA =  /Volumes/dcl/largeforest/IntelliJ_Projects/instcopy/test/dsttop/data
 TGT_VAR = ../dsttop/data/var
 TGT_KEIS = "a b c d e"
 TGT_CLONES = '1 2 3 4 5'
@@ -17,4 +19,7 @@ TGT_SYS3 =myapp
 TGT_SYS4 = myapp #comment
 
 TGT_SYS5 = 日本語
+
+ARR_1 = '1 2'
+ARR_A = 'A B'
 
