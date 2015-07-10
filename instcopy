@@ -1,10 +1,11 @@
+#! /usr/bin/env ruby
 # encoding: utf-8
 
 =begin
  Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
 =end
 
-require 'FileUtils'
+require 'fileutils'
 
 #
 # FileCopy gets definition of {src_file: dest_directory} pairs as list and do copy as defined.
@@ -164,11 +165,7 @@ class FileCopy
     return nil
   end
 
-end# encoding: utf-8
-
-=begin
- Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
-=end
+end
 
 #
 # instcopy configuration of the topdir
@@ -263,11 +260,7 @@ class ConfigTop
     end
   end
 
-end# encoding: utf-8
-
-=begin
- Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
-=end
+end
 
 require 'yaml'
 require 'pp'
@@ -375,11 +368,7 @@ class ConfigSub
   end
 
 
-end# encoding: utf-8
-
-=begin
- Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
-=end
+end
 
 
 class Instcopy
@@ -418,12 +407,7 @@ class Instcopy
     end
   end
 
-end#!/usr/bin/env ruby
-# encoding: utf-8
-
-=begin
- Copyright (c) 2014 padoauk@gmail.com All Rights Reserved
-=end
+end
 
 #
 # instcopy main
