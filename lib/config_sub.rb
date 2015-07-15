@@ -81,14 +81,17 @@ class ConfigSub
   # trace hash and get the path, of keys, to non-hash object
   #
   # examples
-  #   { "k1": {"k2: ["v1", "v2"]}} => [ {"v1" : "k1/k2"}, {"v2": "k1/k2"} ]
-  #   [ {"k1":"v1"}, { "l1": { "l2": { "l3": "w1" }}}
+  #     { "opt": {"bin": ["ruby", "gem"]}} => [ {"ruby" : "opt/bin"}, {"gem": "opt/bin"} ]
+  #     [ {"k1":"v1"}, { "l1": { "l2": { "l3": "w1" }}}
   #                                => [ {"v1": "k1"}, {"w1": "l1/l2/l3"} ]
+  #   a singular specification: nil for node is recognized as "."
+  #     { "k1": {"k2" : {"k3" => nil}}} => {".": "k1/k2/k3"}
   #
   def trace_hash( obj, path )
     r = []
-
-    if obj.instance_of?(Array)
+    if obj == nil
+      r.push({"." => path})
+    elsif obj.instance_of?(Array)
       obj.each do |o|
         if o.instance_of?(String)
           r.push({o => path})

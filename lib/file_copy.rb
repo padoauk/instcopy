@@ -117,13 +117,17 @@ class FileCopy
       end
 
       if $DRY_RUN || $EXEC_VERBOSE
-        puts "\tcopy #{src} #{dst}"
+        if src == "."
+          puts "\tmkdir #{File.dirname(dst)}"
+        else
+          puts "\tcopy #{src} #{dst}"
+        end
       end
 
       unless $DRY_RUN
         dirname = File.dirname(dst)
         FileUtils.mkdir_p(dirname)
-        FileUtils.cp(src, dst, :preserve => true )
+        FileUtils.cp(src, dst, :preserve => true ) unless src == "."
       end
 
     rescue => e
